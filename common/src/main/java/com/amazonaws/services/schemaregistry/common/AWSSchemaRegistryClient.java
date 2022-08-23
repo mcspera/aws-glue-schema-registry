@@ -84,29 +84,7 @@ public class AWSSchemaRegistryClient {
     public AWSSchemaRegistryClient(@NonNull AwsCredentialsProvider credentialsProvider,
                                    @NonNull GlueSchemaRegistryConfiguration glueSchemaRegistryConfiguration,
                                    @NonNull RetryPolicy retryPolicy) {
-        this.glueSchemaRegistryConfiguration = glueSchemaRegistryConfiguration;
-        ClientOverrideConfiguration overrideConfiguration = ClientOverrideConfiguration.builder()
-                .retryPolicy(retryPolicy)
-                .addExecutionInterceptor(new UserAgentRequestInterceptor())
-                .build();
-
-        GlueClientBuilder glueClientBuilder = GlueClient
-                .builder()
-                .credentialsProvider(credentialsProvider)
-                .overrideConfiguration(overrideConfiguration)
-                .httpClient(UrlConnectionHttpClient.builder().build())
-                .region(Region.of(glueSchemaRegistryConfiguration.getRegion()));
-
-        if (glueSchemaRegistryConfiguration.getEndPoint() != null) {
-            try {
-                glueClientBuilder.endpointOverride(new URI(glueSchemaRegistryConfiguration.getEndPoint()));
-            } catch (URISyntaxException e) {
-                String message = String.format("Malformed uri, please pass the valid uri for creating the client",
-                                               glueSchemaRegistryConfiguration.getEndPoint());
-                throw new AWSSchemaRegistryException(message, e);
-            }
-        }
-        this.client = glueClientBuilder.build();
+        this(buildGlueClient(credentialsProvider, glueSchemaRegistryConfiguration, retryPolicy), glueSchemaRegistryConfiguration);
     }
 
     /**
@@ -121,8 +99,15 @@ public class AWSSchemaRegistryClient {
         this(credentialsProvider, glueSchemaRegistryConfiguration, RetryPolicy.defaultRetryPolicy());
     }
 
-    public AWSSchemaRegistryClient(@NonNull GlueClient glueClient) {
-        this.client = glueClient;
+    /**
+     * Create Amazon Schema Registry client
+     *
+     * @param client backing GlueClient to use to connect to the schema registry
+     * @param glueSchemaRegistryConfiguration schema registry configuration elements
+     */
+    public AWSSchemaRegistryClient(@NonNull GlueClient client, @NonNull GlueSchemaRegistryConfiguration glueSchemaRegistryConfiguration) {
+        this.client = client;
+        this.glueSchemaRegistryConfiguration = glueSchemaRegistryConfiguration;
     }
 
     /**
@@ -509,13 +494,46 @@ public class AWSSchemaRegistryClient {
         return getTagsResponse;
     }
 
+    private static final GlueClient buildGlueClient(@NonNull AwsCredentialsProvider credentialsProvider,
+                                                    @NonNull GlueSchemaRegistryConfiguration glueSchemaRegistryConfiguration,
+                                                    @NonNull RetryPolicy retryPolicy) {
+        ClientOverrideConfiguration overrideConfiguration = ClientOverrideConfiguration.builder()
+                .retryPolicy(retryPolicy)
+                .addExecutionInterceptor(new UserAgentRequestInterceptor(glueSchemaRegistryConfiguration))
+                .build();
+
+        GlueClientBuilder glueClientBuilder = GlueClient
+                .builder()
+                .credentialsProvider(credentialsProvider)
+                .overrideConfiguration(overrideConfiguration)
+                .httpClient(UrlConnectionHttpClient.builder().build())
+                .region(Region.of(glueSchemaRegistryConfiguration.getRegion()));
+
+        if (glueSchemaRegistryConfiguration.getEndPoint() != null) {
+            try {
+                glueClientBuilder.endpointOverride(new URI(glueSchemaRegistryConfiguration.getEndPoint()));
+            } catch (URISyntaxException e) {
+                String message = String.format("Malformed uri, please pass the valid uri for creating the client",
+                        glueSchemaRegistryConfiguration.getEndPoint());
+                throw new AWSSchemaRegistryException(message, e);
+            }
+        }
+        return glueClientBuilder.build();
+    }
+
     /**
      * AWS SDK Request interceptor that adds additional data to the UserAgent of Glue API requests.
      */
     @VisibleForTesting
-    protected class UserAgentRequestInterceptor implements ExecutionInterceptor {
+    protected static class UserAgentRequestInterceptor implements ExecutionInterceptor {
         private static final String ONE = "1";
         private static final String ZERO = "0";
+
+        private GlueSchemaRegistryConfiguration glueSchemaRegistryConfiguration;
+
+        public UserAgentRequestInterceptor(GlueSchemaRegistryConfiguration glueSchemaRegistryConfiguration) {
+            this.glueSchemaRegistryConfiguration = glueSchemaRegistryConfiguration;
+        }
 
         @Override
         public SdkRequest modifyRequest(Context.ModifyRequest context, ExecutionAttributes executionAttributes) {

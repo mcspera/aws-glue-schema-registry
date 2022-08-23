@@ -62,7 +62,7 @@ public class UserAgentRequestInterceptorTest {
             new AWSSchemaRegistryClient(mockAwsCredentialsProvider, config);
 
         AWSSchemaRegistryClient.UserAgentRequestInterceptor userAgentRequestInterceptor =
-            awsSchemaRegistryClient.new UserAgentRequestInterceptor();
+            new AWSSchemaRegistryClient.UserAgentRequestInterceptor(config);
 
         Context.ModifyRequest modifyRequest = mock(Context.ModifyRequest.class);
         GetSchemaVersionRequest glueRequest = GetSchemaVersionRequest.builder().build();
@@ -82,11 +82,12 @@ public class UserAgentRequestInterceptorTest {
     void test_UserAgentInterceptor_ReturnsSameRequestForNonGlueRequests() {
         AwsCredentialsProvider mockAwsCredentialsProvider = mock(AwsCredentialsProvider.class);
 
+        GlueSchemaRegistryConfiguration glueSchemaRegistryConfiguration = new GlueSchemaRegistryConfiguration(REGION);
         AWSSchemaRegistryClient awsSchemaRegistryClient =
-            new AWSSchemaRegistryClient(mockAwsCredentialsProvider, new GlueSchemaRegistryConfiguration(REGION));
+            new AWSSchemaRegistryClient(mockAwsCredentialsProvider, glueSchemaRegistryConfiguration);
 
         AWSSchemaRegistryClient.UserAgentRequestInterceptor userAgentRequestInterceptor =
-            awsSchemaRegistryClient.new UserAgentRequestInterceptor();
+                new AWSSchemaRegistryClient.UserAgentRequestInterceptor(glueSchemaRegistryConfiguration);
 
         SdkRequest nonGlueRequest = mock(SdkRequest.class);
         Context.ModifyRequest modifyRequest = mock(Context.ModifyRequest.class);

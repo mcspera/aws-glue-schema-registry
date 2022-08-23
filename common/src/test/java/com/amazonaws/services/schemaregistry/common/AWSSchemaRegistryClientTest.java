@@ -90,8 +90,6 @@ public class AWSSchemaRegistryClientTest {
 
     @BeforeEach
     public void setup() {
-        awsSchemaRegistryClient = new AWSSchemaRegistryClient(mockGlueClient);
-
         Schema.Parser parser = new Schema.Parser();
         try {
             schema = parser.parse(new File(AVRO_USER_SCHEMA_FILE));
@@ -114,6 +112,8 @@ public class AWSSchemaRegistryClientTest {
         configs.put(AWSSchemaRegistryConstants.REGISTRY_NAME, "User-Topic");
         configs.put(AWSSchemaRegistryConstants.TAGS, testTags);
         glueSchemaRegistryConfiguration = new GlueSchemaRegistryConfiguration(configs);
+
+        awsSchemaRegistryClient = new AWSSchemaRegistryClient(mockGlueClient, glueSchemaRegistryConfiguration);
     }
 
     @Test
@@ -142,7 +142,7 @@ public class AWSSchemaRegistryClientTest {
     @Test
     public void testConstructor_nullCredentials_throwsException() {
         glueSchemaRegistryConfiguration = new GlueSchemaRegistryConfiguration(configs);
-        Assertions.assertThrows(IllegalArgumentException.class , () -> new AWSSchemaRegistryClient(null,
+        Assertions.assertThrows(IllegalArgumentException.class , () -> new AWSSchemaRegistryClient((AwsCredentialsProvider) null,
             glueSchemaRegistryConfiguration));
     }
 
@@ -154,7 +154,12 @@ public class AWSSchemaRegistryClientTest {
 
     @Test
     public void testConstructor_nullGlueClient_throwsException() {
-        Assertions.assertThrows(IllegalArgumentException.class , () -> new AWSSchemaRegistryClient(null));
+        Assertions.assertThrows(IllegalArgumentException.class , () -> new AWSSchemaRegistryClient((GlueClient) null, glueSchemaRegistryConfiguration));
+    }
+
+    @Test
+    public void testConstructor_nullSchemaRegistryConfig_throwsException() {
+        Assertions.assertThrows(IllegalArgumentException.class , () -> new AWSSchemaRegistryClient(mockGlueClient, null));
     }
 
     @Test

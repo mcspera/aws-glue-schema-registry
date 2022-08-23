@@ -46,8 +46,8 @@ public class SchemaByDefinitionFetcherTest {
     @BeforeEach
     void setUp() {
         mockGlueClient = mock(GlueClient.class);
-        awsSchemaRegistryClient = new AWSSchemaRegistryClient(mockGlueClient);
         GlueSchemaRegistryConfiguration config = new GlueSchemaRegistryConfiguration(getConfigsWithAutoRegistrationSetting(true));
+        awsSchemaRegistryClient = new AWSSchemaRegistryClient(mockGlueClient, config);
         schemaByDefinitionFetcher = new SchemaByDefinitionFetcher(awsSchemaRegistryClient, config);
         userSchemaDefinition = "{Some-avro-schema}";
     }
